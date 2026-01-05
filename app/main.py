@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 from app.database import db
 from app.database.crud import fetch_job, insert_job, update_job_status
 from app.schemas.job import JobCreate, JobCreateAPI
-from app.workers import celery_app
 from app.workers.tasks import celery_task
 
 @asynccontextmanager

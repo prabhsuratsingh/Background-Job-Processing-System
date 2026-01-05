@@ -1,5 +1,4 @@
 import time
-from uuid import UUID
 from app.database.crud import update_job_status
 from app.database.db import SessionLocal
 from app.workers.celery_app import celery_app
