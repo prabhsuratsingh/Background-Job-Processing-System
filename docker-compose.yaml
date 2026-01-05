@@ -1,4 +1,62 @@
-version: "3.8"
+# version: "3.8"
+# services:
+#   db:
+#     image: postgres:15
+#     restart: always
+#     environment:
+#       POSTGRES_USER: admin
+#       POSTGRES_PASSWORD: password
+#       POSTGRES_DB: Data
+#     volumes:
+#       - db_data:/var/lib/postgresql/data
+#     ports:
+#       - "5433:5432"
+  
+#   redis:
+#     image: redis:latest
+#     ports:
+#       - "6379:6379"
+#     healthcheck:
+#       test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+#       interval: 1s
+#       timeout: 3s
+#       retries: 5
+
+#   server:
+#     container_name: bg-job-processing-system
+#     depends_on:
+#       redis:
+#         condition: service_healthy
+#     build:
+#       context: .
+#       dockerfile: Dockerfile
+#     ports:
+#       - "8080:8080"
+
+#   worker:
+#     depends_on:
+#       redis:
+#         condition: service_healthy
+#       db:
+#         condition: service_started
+#     build:
+#       context: .
+#       dockerfile: Dockerfile
+#     command:
+#       [
+#         "uv",
+#         "run",
+#         "celery",
+#         "-A",
+#         "workers.celery_app",
+#         "worker",
+#         "-l",
+#         "info"
+#       ]
+
+# volumes:
+#   db_data:
+
 services:
   db:
     image: postgres:15
@@ -11,7 +69,7 @@ services:
       - db_data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
-  
+
   redis:
     image: redis:latest
     ports:
@@ -24,14 +82,53 @@ services:
 
   server:
     container_name: bg-job-processing-system
-    depends_on:
-      redis:
-        condition: service_healthy
     build:
       context: .
       dockerfile: Dockerfile
+    command:
+      [
+        "uv",
+        "run",
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8080",
+        "--reload"
+      ]
     ports:
       - "8080:8080"
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_started
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command:
+      [
+        "uv",
+        "run",
+        "celery",
+        "-A",
+        "app.workers.celery_app",
+        "worker",
+        "-l",
+        "info"
+      ]
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_started
 
 volumes:
   db_data:
